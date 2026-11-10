@@ -1,3 +1,37 @@
-#SPDX-License-Identifier: MIT-0
 ---
 # tasks file for prometheus-config
+
+- name: Create Prometheus configuration directory
+  file:
+    path: /etc/prometheus
+    state: directory
+    mode: '0755'
+
+- name: Generate Prometheus scrape config (prometheus.yml)
+  copy:
+    dest: /etc/prometheus/prometheus.yml
+    content: |
+      global:
+        scrape_interval: 15s
+        evaluation_interval: 15s
+
+      scrape_configs:
+        - job_name: 'kubernetes-nodes'
+          static_configs:
+            - targets: 
+              # Dynamic inventory will replace these IPs in production
+              - 'localhost:9100'
+
+        - job_name: 'kubernetes-pods'
+          kubernetes_sd_configs:
+            - role: pod
+          relabel_configs:
+            - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+              action: keep
+              regex: true
+
+- name: Restart Prometheus service to apply config
+  systemd:
+    name: prometheus
+    state: restarted
+  ignore_errors: true

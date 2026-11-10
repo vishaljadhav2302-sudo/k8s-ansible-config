@@ -1,3 +1,47 @@
-#SPDX-License-Identifier: MIT-0
 ---
 # tasks file for alertmanager-config
+
+- name: Create Alertmanager configuration directory
+  file:
+    path: /etc/alertmanager
+    state: directory
+    mode: '0755'
+
+- name: Generate Alertmanager config (alertmanager.yml)
+  copy:
+    dest: /etc/alertmanager/alertmanager.yml
+    content: |
+      global:
+        resolve_timeout: 5m
+        # Replace with your actual Slack webhook URL
+        slack_api_url: slack_api_url: 'YOUR_SLACK_WEBHOOK_URL'
+
+      route:
+        group_by: ['alertname']
+        group_wait: 10s
+        group_interval: 10s
+        repeat_interval: 1h
+        receiver: 'slack-notifications'
+
+      receivers:
+        - name: 'slack-notifications'
+          slack_configs:
+            - channel: '#alerts'
+              send_resolved: true
+              title: '[{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}'
+              text: >-
+                {{ range .Alerts }}
+                  *Alert:* {{ .Annotations.summary }} - `{{ .Labels.severity }}`
+                  *Description:* {{ .Annotations.description }}
+                  *Details:*
+                  {{ range .Labels.SortedPairs }} • *{{ .Name }}:* `{{ .Value }}`
+                  {{ end }}
+                {{ end }}
+
+- name: Restart Alertmanager service to apply config
+  systemd:
+    name: alertmanager
+    state: restarted
+  ignore_errors: true 
+  # Note: If Alertmanager is running inside K8s via Helm, this restart task 
+  # can be ignored as Helm manages the ConfigMap updates instead.
