@@ -1,53 +1,30 @@
 ---
-# tasks file for node-exporter
-
-- name: Create node_exporter user (Security best practice)
-  user:
-    name: node_exporter
-    system: yes
-    shell: /bin/false
-
-- name: Download Node Exporter binary
+- name: Download Node Exporter
   get_url:
-    url: https://github.com/prometheus/node_exporter/releases/download/v1.7.0/node_exporter-1.7.0.linux-amd64.tar.gz
-    dest: /tmp/node_exporter.tar.gz
-
+    url: "https://github.com/prometheus/node_exporter/releases/download/v1.6.1/node_exporter-1.6.1.linux-amd64.tar.gz"
+    dest: "/tmp/node_exporter.tar.gz"
+    
 - name: Extract Node Exporter
   unarchive:
-    src: /tmp/node_exporter.tar.gz
-    dest: /tmp/
+    src: "/tmp/node_exporter.tar.gz"
+    dest: "/usr/local/bin/"
     remote_src: yes
-
-- name: Move Node Exporter binary to /usr/local/bin
-  copy:
-    src: /tmp/node_exporter-1.7.0.linux-amd64/node_exporter
-    dest: /usr/local/bin/node_exporter
-    remote_src: yes
-    mode: '0755'
-    owner: node_exporter
-    group: node_exporter
-
-- name: Create Node Exporter systemd service file
+    extra_opts: [--strip-components=1]
+    
+- name: Create systemd service for Node Exporter
   copy:
     dest: /etc/systemd/system/node_exporter.service
     content: |
       [Unit]
       Description=Node Exporter
-      Wants=network-online.target
-      After=network-online.target
-
       [Service]
-      User=node_exporter
-      Group=node_exporter
-      Type=simple
       ExecStart=/usr/local/bin/node_exporter
-
       [Install]
       WantedBy=multi-user.target
-
-- name: Reload systemd and start Node Exporter service
+      
+- name: Start and enable Node Exporter
   systemd:
-    daemon_reload: yes
     name: node_exporter
     state: started
     enabled: yes
+    daemon_reload: yes

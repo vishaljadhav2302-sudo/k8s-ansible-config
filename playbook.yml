@@ -1,9 +1,7 @@
 ---
-- name: Configure Kubernetes Worker Nodes
-  hosts: all
+- name: Configure EC2 Worker Nodes
+  hosts: worker_nodes
   become: yes
   roles:
-    - node-setup
-    - node-exporter
-    - prometheus-config
-    - alertmanager-config
+    - os_hardening
+    - node_exporter

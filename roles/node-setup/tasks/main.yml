@@ -1,62 +1,19 @@
 ---
-# tasks file for node-setup
-
-- name: OS Hardening - Update all system packages
+- name: Update system packages (OS Hardening)
   apt:
-    name: "*"
-    state: latest
     update_cache: yes
+    upgrade: dist
 
-- name: K8s Requirement - Disable swap memory (Important for K8s)
-  command: swapoff -a
-  ignore_errors: true
-
-- name: K8s Requirement - Remove swap from /etc/fstab
-  replace:
-    path: /etc/fstab
-    regexp: '^([^#].*?\sswap\s+sw\s+.*)$'
-    replace: '# \1'
-
-- name: OS Hardening - Load K8s networking modules (br_netfilter)
-  modprobe:
-    name: br_netfilter
-    state: present
-
-- name: OS Hardening - Setup sysctl params for K8s routing
-  sysctl:
-    name: net.ipv4.ip_forward
-    value: '1'
-    state: present
-    reload: yes
-
-- name: Container Runtime Setup - Install prerequisites
+- name: Install Docker and required packages
   apt:
-    name:
+    name: 
+      - docker.io
       - apt-transport-https
-      - ca-certificates
       - curl
-      - software-properties-common
     state: present
 
-- name: Container Runtime Setup - Install containerd
-  apt:
-    name: containerd
-    state: present
-
-- name: Container Runtime Setup - Create containerd configuration directory
-  file:
-    path: /etc/containerd
-    state: directory
-
-- name: Container Runtime Setup - Generate default containerd config
-  shell: containerd config default > /etc/containerd/config.toml
-  args:
-    creates: /etc/containerd/config.toml
-
-- name: Container Runtime Setup - Restart and enable containerd service
+- name: Start and enable Docker service
   systemd:
-    name: containerd
-    state: restarted
-    enabled: yes#SPDX-License-Identifier: MIT-0
----
-# tasks file for node-setup
+    name: docker
+    state: started
+    enabled: yes
